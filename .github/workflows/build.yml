@@ -47,10 +47,11 @@ jobs:
           git submodule update --init --recursive
           echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
           echo "short=$(git rev-parse --short=10 HEAD)" >> "$GITHUB_OUTPUT"
-          git log -1 --format='Eden %H (%cd): %s'
+          git log -1 --format='Eden %H (%cd): %s' | tee -a "$RUNNER_TEMP/ci-log.txt"
 
       - name: Apply the Eden TH changes
-        run: python3 patches/apply.py eden
+        run: python3 patches/apply.py eden 2>&1 | tee -a "$RUNNER_TEMP/ci-log.txt"; exit ${PIPESTATUS[0]}
+        shell: bash
 
       - uses: actions/setup-java@v4
         with:
@@ -75,7 +76,7 @@ jobs:
           set -euo pipefail
           sudo apt-get update -q && sudo apt-get install -y -q glslang-tools ninja-build > /dev/null || true
           # Mainline flavour, Release, no update checker (this app is updated from here, not upstream).
-          sh .ci/android/build.sh -t standard -b Release
+          sh .ci/android/build.sh -t standard -b Release > "$RUNNER_TEMP/build-log.txt" 2>&1 || { tail -300 "$RUNNER_TEMP/build-log.txt" | tee -a "$RUNNER_TEMP/ci-log.txt"; exit 1; }
           ls -l artifacts
 
       - name: Publish the APK
@@ -92,3 +93,27 @@ jobs:
           gh release create latest "$name" Eden-TH.apk "$name.sha256" -R "$GITHUB_REPOSITORY" \
             --title "Eden TH (${{ steps.eden.outputs.short }})" \
             --notes "Built from the official Eden source at ${{ steps.eden.outputs.sha }} with patches/apply.py."
+
+      # The repository's own CI log, readable with plain git: what the patch step saw and the end of a
+      # failed build, pushed to the ci-logs branch.
+      - name: Publish the CI log
+        if: always()
+        run: |
+          set +e
+          log="$RUNNER_TEMP/ci-log.txt"
+          {
+            echo "== run ${{ github.run_id }} on ${{ github.sha }}"
+            if [ -d eden ]; then
+              echo "== gradle mainline flavour"
+              grep -n -A8 'create("mainline")' eden/src/android/app/build.gradle.kts
+              echo "== applicationId lines"
+              grep -n 'applicationId' eden/src/android/app/build.gradle.kts
+              echo "== kgsl / custom driver checks"
+              grep -rn -B3 -A6 'kgsl-3d0' eden/src/android/app/src/main/jni/ | head -80
+            fi
+          } >> "$log"
+          git config user.name ci; git config user.email ci@users.noreply.github.com
+          git checkout --orphan ci-logs-tmp
+          git rm -rq --cached . ; cp "$log" ci-log.txt
+          git add ci-log.txt; git commit -qm "CI log ${{ github.run_id }}"
+          git push -f origin HEAD:ci-logs
