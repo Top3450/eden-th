@@ -9,7 +9,7 @@ on:
     inputs:
       ref:
         description: "Eden commit, tag or branch to build (official repository)"
-        default: master
+        default: 218c6705d950635bc18f8458d738a1996fb592b6
         required: true
   push:
     branches: [ main ]
@@ -40,7 +40,8 @@ jobs:
         id: eden
         run: |
           set -euo pipefail
-          ref="${{ github.event.inputs.ref || 'master' }}"
+          # Pinned: patches/apply.py edits this exact Eden; move the pin and re-check the patches together.
+          ref="${{ github.event.inputs.ref || '218c6705d950635bc18f8458d738a1996fb592b6' }}"
           git clone --recursive "$EDEN_REPO" eden
           cd eden
           git checkout "$ref"
