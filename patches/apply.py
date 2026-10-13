@@ -27,13 +27,35 @@ def edit(rel, description, old, new, count=1, regex=False):
 
 
 # 1. Its own app: installs beside the official Eden (and its data stays separate), named Eden TH.
-edit(
-    "src/android/app/build.gradle.kts",
-    "mainline flavour gets its own package and name",
-    r'(create\("mainline"\) \{\s*dimension = "version"\s*)resValue\("string", "app_name_suffixed", "Eden"\)',
-    r'\1resValue("string", "app_name_suffixed", "Eden TH")\n            applicationId = "dev.eden.eden_emulator.th"',
-    regex=True,
-)
+#    Only inside the mainline flavour's block, whatever else upstream adds to it.
+def mainline_block(text):
+    m = re.search(r'create\("mainline"\) \{.*?\n        \}', text, flags=re.S)
+    return m
+
+
+gradle = root / "src/android/app/build.gradle.kts"
+text = gradle.read_text(encoding="utf-8")
+m = mainline_block(text)
+if not m:
+    failures.append("build.gradle.kts: no mainline flavour block")
+else:
+    block = m.group(0)
+    named = 0
+    for old, new in (('resValue("string", "app_name_suffixed", "Eden")', 'resValue("string", "app_name_suffixed", "Eden TH")'),
+                     ('"appNameBase" to "Eden")', '"appNameBase" to "Eden TH")')):
+        if old in block:
+            block = block.replace(old, new)
+            named += 1
+    if not named:
+        failures.append("build.gradle.kts: mainline flavour sets no app name Eden TH could change")
+    if 'applicationId' in block:
+        failures.append("build.gradle.kts: mainline flavour already sets an applicationId")
+    else:
+        block = block.replace('dimension = "version"',
+                              'dimension = "version"\n            applicationId = "dev.eden.eden_emulator.th"', 1)
+    if 'applicationId = "dev.eden.eden_emulator.th"' in block:
+        gradle.write_text(text[:m.start()] + block + text[m.end():], encoding="utf-8")
+        print(f"ok  build.gradle.kts: mainline flavour is Eden TH ({named} name setting(s), own package)")
 
 # 2. Custom GPU drivers on Mali too. Eden offers its driver manager only where KGSL (Adreno) exists;
 #    the loader itself (adrenotools, custom-driver mode) does not need KGSL, and PanVK kbase ships
