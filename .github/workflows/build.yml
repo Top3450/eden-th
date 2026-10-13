@@ -65,8 +65,12 @@ jobs:
           ndk=$(sed -n 's/.*ndkVersion = "\([^"]*\)".*/\1/p' "$gradle" | head -1)
           sdk=$(sed -n 's/.*compileSdkVersion = "android-\([0-9]*\)".*/\1/p' "$gradle" | head -1)
           echo "NDK $ndk, platform $sdk"
-          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install \
-            "ndk;$ndk" "platforms;android-${sdk:-36}" "cmake;3.22.1" > /dev/null
+          echo "NDK $ndk, platform ${sdk:-36}" >> "$RUNNER_TEMP/ci-log.txt"
+          # `yes` dies of SIGPIPE when sdkmanager stops reading; that must not fail the step.
+          { yes || true; } | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install \
+            "ndk;$ndk" "platforms;android-${sdk:-36}" "cmake;3.22.1" > "$RUNNER_TEMP/sdk-log.txt" 2>&1 \
+            || { tail -40 "$RUNNER_TEMP/sdk-log.txt" | tee -a "$RUNNER_TEMP/ci-log.txt"; exit 1; }
+          ls "$ANDROID_HOME/ndk" | tee -a "$RUNNER_TEMP/ci-log.txt"
           echo "ANDROID_NDK_ROOT=$ANDROID_HOME/ndk/$ndk" >> "$GITHUB_ENV"
           echo "ANDROID_SDK_ROOT=$ANDROID_HOME" >> "$GITHUB_ENV"
 
