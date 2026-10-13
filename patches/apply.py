@@ -129,7 +129,11 @@ edit(
 
         // Eden TH: cover flow - the further from the centre, the more a card turns away.
         val coverFlow = (-Math.toDegrees(angle.toDouble()).toFloat() * 0.9f).coerceIn(-45f, 45f)
-        if (child is GradientBorderCardView) child.baseRotationY = coverFlow else child.rotationY = coverFlow
+        if (child is org.yuzu.yuzu_emu.views.GradientBorderCardView) {
+            child.baseRotationY = coverFlow
+        } else {
+            child.rotationY = coverFlow
+        }
 """,
 )
 edit(
@@ -137,8 +141,11 @@ edit(
     "cover flow reset when leaving the carousel",
     "                child?.alpha = 1f\n",
     """                child?.alpha = 1f
-                (child as? GradientBorderCardView)?.baseRotationY = 0f
-                if (child !is GradientBorderCardView) child?.rotationY = 0f
+                if (child is org.yuzu.yuzu_emu.views.GradientBorderCardView) {
+                    child.baseRotationY = 0f
+                } else {
+                    child?.rotationY = 0f
+                }
 """,
 )
 edit(
