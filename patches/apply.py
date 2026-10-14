@@ -202,6 +202,35 @@ edit(
 """,
 )
 
+# 4. The carousel (a Switch-style row of big game boxes that scrolls sideways, here turning in cover
+#    flow) in portrait as well as landscape. Upstream offers it only in landscape because a card is
+#    sized from the list's height, which in portrait is taller than the screen is wide; the card is
+#    also capped by the width, so the neighbours still peek in at the sides.
+edit(
+    f"{VIEWS}/CarouselRecyclerView.kt",
+    "carousel card fits a portrait screen",
+    """            (height * aspectFactor).toInt()
+        )""",
+    """            (height * aspectFactor).toInt(),
+            (width * 0.62f).toInt() // Eden TH: portrait
+        )""",
+)
+edit(
+    GAMES,
+    "carousel offered in portrait",
+    """        if (!isLandscape) {
+            popup.menu.findItem(R.id.view_carousel)?.isVisible = false
+        }
+""",
+    "",
+)
+edit(
+    GAMES,
+    "carousel kept in portrait",
+    "val savedViewType = if (isLandscape || currentViewType != GameAdapter.VIEW_TYPE_CAROUSEL) currentViewType else GameAdapter.VIEW_TYPE_GRID",
+    "val savedViewType = currentViewType // Eden TH: carousel in portrait too",
+)
+
 if failures:
     print("\nUpstream Eden changed where Eden TH edits it:", file=sys.stderr)
     for f in failures:
