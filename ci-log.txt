@@ -1,0 +1,56 @@
+Eden 218c6705d950635bc18f8458d738a1996fb592b6 (Tue Oct 13 04:38:36 2026 +0200): [hle] constexpr handler dispatch maps, introduce version gating (#4480)
+ok  build.gradle.kts: mainline flavour is Eden TH (2 name setting(s), own package)
+ok  src/android/app/src/main/jni/native.cpp: driver manager also on Mali (/dev/mali0)
+ok  src/android/app/src/main/java/org/yuzu/yuzu_emu/views/TiltAuroraView.kt: added
+ok  src/android/app/src/main/java/org/yuzu/yuzu_emu/views/TiltCard.kt: added
+ok  src/android/app/src/main/java/org/yuzu/yuzu_emu/views/TiltSensor.kt: added
+ok  src/android/app/src/main/res/values/eden_th_strings.xml: added
+ok  src/android/app/src/main/res/values-th/eden_th_strings.xml: added
+ok  src/android/app/src/main/java/org/yuzu/yuzu_emu/views/GradientBorderCardView.kt: cards tilt, swing and shine (TiltCard)
+ok  src/android/app/src/main/java/org/yuzu/yuzu_emu/views/CarouselRecyclerView.kt: cover flow: side cards turn away from the centre
+ok  src/android/app/src/main/java/org/yuzu/yuzu_emu/views/CarouselRecyclerView.kt: cover flow reset when leaving the carousel
+ok  src/android/app/src/main/res/layout/fragment_games.xml: tilting glow behind the game list
+ok  src/android/app/src/main/res/layout-land/fragment_games.xml: tilting glow behind the game list
+ok  src/android/app/src/main/res/menu/menu_game_views.xml: motion effects switch in the view menu
+ok  src/android/app/src/main/java/org/yuzu/yuzu_emu/ui/GamesFragment.kt: motion effects switch shows its state
+ok  src/android/app/src/main/java/org/yuzu/yuzu_emu/ui/GamesFragment.kt: motion effects switch toggles
+ok  src/android/app/src/main/java/org/yuzu/yuzu_emu/views/CarouselRecyclerView.kt: carousel card fits a portrait screen
+ok  src/android/app/src/main/java/org/yuzu/yuzu_emu/ui/GamesFragment.kt: carousel offered in portrait
+ok  src/android/app/src/main/java/org/yuzu/yuzu_emu/ui/GamesFragment.kt: carousel kept in portrait
+ok  src/android/app/src/main/res/layout/fragment_games.xml: portrait game list can be a carousel
+all Eden TH changes applied
+NDK 28.2.13676358, platform 36
+27.3.13750724
+28.2.13676358
+29.0.14206865
+30.0.16248370
+== run 38536345611 on 1ea9d4a3f18eece4f98ac4e7d8ba6c391b925f7f
+== gradle mainline flavour
+188:        create("mainline") {
+189-            dimension = "version"
+190-            applicationId = "dev.eden.eden_emulator.th"
+191-            isDefault = true
+192-            minSdk = 33
+193-
+194-            manifestPlaceholders += mapOf("appNameBase" to "Eden TH")
+195-            resValue("string", "app_name_suffixed", "Eden TH")
+196-
+== applicationId lines
+67:        applicationId = "dev.eden.eden_emulator"
+139:                applicationIdSuffix = ".nightly"
+167:            applicationIdSuffix = ".relWithDebInfo"
+178:            applicationIdSuffix = ".debug"
+190:            applicationId = "dev.eden.eden_emulator.th"
+207:            applicationId = "com.miHoYo.Yuanshen"
+225:            applicationId = "dev.legacy.eden_emulator"
+== kgsl / custom driver checks
+eden/src/android/app/src/main/jni/native.cpp-836-}
+eden/src/android/app/src/main/jni/native.cpp-837-
+eden/src/android/app/src/main/jni/native.cpp-838-[[maybe_unused]] static bool CheckKgslPresent() {
+eden/src/android/app/src/main/jni/native.cpp:839:    constexpr auto KgslPath{"/dev/kgsl-3d0"};
+eden/src/android/app/src/main/jni/native.cpp-840-
+eden/src/android/app/src/main/jni/native.cpp-841-    return access(KgslPath, F_OK) == 0 || access("/dev/mali0", F_OK) == 0;  // Eden TH: Mali too
+eden/src/android/app/src/main/jni/native.cpp-842-}
+eden/src/android/app/src/main/jni/native.cpp-843-
+eden/src/android/app/src/main/jni/native.cpp-844-[[maybe_unused]] bool SupportsCustomDriver() {
+eden/src/android/app/src/main/jni/native.cpp-845-    return android_get_device_api_level() >= 28 && CheckKgslPresent();
