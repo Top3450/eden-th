@@ -77,14 +77,10 @@ class TiltCard(private val view: View) : TiltSensor.Listener, Choreographer.Fram
     private val enabled: Boolean
         get() = TiltSensor.isEnabled(view.context)
 
-    // Each card floats on its own beat, so the list never looks frozen.
-    private val phase = (System.identityHashCode(view) % 6283) / 1000f
-
     fun onAttached() {
         TiltSensor.add(view.context, this)
         view.viewTreeObserver.addOnScrollChangedListener(scrollListener)
         lastScreenX = Int.MIN_VALUE
-        start()
     }
 
     fun onDetached() {
@@ -163,12 +159,8 @@ class TiltCard(private val view: View) : TiltSensor.Listener, Choreographer.Fram
         lastFrameNanos = frameTimeNanos
 
         val on = enabled
-        // A slow idle sway on top of everything else.
-        val t = frameTimeNanos / 1e9f
-        val swayX = if (on) kotlin.math.cos(t * 0.8f + phase) * 3f else 0f
-        val swayY = if (on) kotlin.math.sin(t * 1.1f + phase) * 4f else 0f
-        val tx = if (on) (sensorX + touchX + swayX).coerceIn(-20f, 20f) else 0f
-        val ty = if (on) (sensorY + touchY + swayY).coerceIn(-20f, 20f) else 0f
+        val tx = if (on) (sensorX + touchX).coerceIn(-18f, 18f) else 0f
+        val ty = if (on) (sensorY + touchY).coerceIn(-18f, 18f) else 0f
 
         // Damped spring, a little under critical damping so a flick overshoots once.
         val stiffness = 170f
@@ -180,9 +172,9 @@ class TiltCard(private val view: View) : TiltSensor.Listener, Choreographer.Fram
 
         apply()
 
-        val settled = !on && abs(tx - x) < 0.05f && abs(ty - y) < 0.05f &&
+        val settled = abs(tx - x) < 0.05f && abs(ty - y) < 0.05f &&
             abs(vx) < 0.05f && abs(vy) < 0.05f
-        if (settled || !view.isAttachedToWindow) {
+        if (settled) {
             x = tx; y = ty; vx = 0f; vy = 0f
             apply()
             running = false
@@ -202,13 +194,13 @@ class TiltCard(private val view: View) : TiltSensor.Listener, Choreographer.Fram
         val w = view.width.toFloat()
         val h = view.height.toFloat()
         if (w <= 0f || h <= 0f) return
-        if (!enabled) return
-        val lean = (hypot(x, y) / 14f).coerceIn(0f, 1f)
+        val lean = (hypot(x, y) / 18f).coerceIn(0f, 1f)
+        if (lean < 0.02f) return
         // The light sits opposite the lean, like a lamp above the screen.
         val cx = w / 2f - (y / 18f) * w * 0.6f
         val cy = h / 2f + (x / 18f) * h * 0.6f
         val radius = max(w, h) * 0.85f
-        val alpha = (28f + lean * 90f).toInt().coerceIn(0, 118)
+        val alpha = (lean * 70f).toInt().coerceIn(0, 70)
         shinePaint.shader = RadialGradient(
             cx, cy, radius,
             intArrayOf(Color.argb(alpha, 255, 255, 255), Color.argb(0, 255, 255, 255)),
