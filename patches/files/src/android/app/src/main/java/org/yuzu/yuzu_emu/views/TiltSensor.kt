@@ -60,12 +60,11 @@ object TiltSensor : SensorEventListener {
         PreferenceManager.getDefaultSharedPreferences(context.applicationContext).edit()
             .putBoolean(PREF_ENABLED, on).apply()
         enabled = on
-        if (!on) {
-            pitch = 0f
-            roll = 0f
-            listeners.toList().forEach { it.onTilt(0f, 0f) }
-        }
+        pitch = 0f
+        roll = 0f
         update(context)
+        // Wakes every card and the background: on, they start floating; off, they settle flat.
+        listeners.toList().forEach { it.onTilt(0f, 0f) }
     }
 
     fun add(context: Context, listener: Listener) {
@@ -107,12 +106,12 @@ object TiltSensor : SensorEventListener {
         }
         // The neutral pose follows the phone slowly (about two seconds), so only a change in how it
         // is held makes the cards lean.
-        neutralPitch += wrap(p - neutralPitch) * 0.025f
-        neutralRoll += wrap(r - neutralRoll) * 0.025f
+        neutralPitch += wrap(p - neutralPitch) * 0.012f
+        neutralRoll += wrap(r - neutralRoll) * 0.012f
         val dp = wrap(p - neutralPitch)
         val dr = wrap(r - neutralRoll)
-        pitch = (dp * 0.9f).coerceIn(-MAX_TILT, MAX_TILT)
-        roll = (dr * 0.9f).coerceIn(-MAX_TILT, MAX_TILT)
+        pitch = (dp * 1.4f).coerceIn(-MAX_TILT, MAX_TILT)
+        roll = (dr * 1.4f).coerceIn(-MAX_TILT, MAX_TILT)
         if (abs(dp) > 60f || abs(dr) > 60f) { // turned right over: start again from here
             neutralPitch = p
             neutralRoll = r

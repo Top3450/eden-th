@@ -82,6 +82,16 @@ for src in sorted(p for p in files.rglob("*") if p.is_file()):
 VIEWS = "src/android/app/src/main/java/org/yuzu/yuzu_emu/views"
 edit(
     f"{VIEWS}/GradientBorderCardView.kt",
+    "gradient rim on every card, full strength when pressed",
+    """        if (showGradientBorder) {
+            canvas.drawPath(borderPath, borderPaint)
+        }""",
+    """        // Eden TH: a soft glowing rim all the time, full strength when pressed or focused.
+        borderPaint.alpha = if (showGradientBorder) 255 else 120
+        canvas.drawPath(borderPath, borderPaint)""",
+)
+edit(
+    f"{VIEWS}/GradientBorderCardView.kt",
     "cards tilt, swing and shine (TiltCard)",
     """    override fun onAttachedToWindow() {
         super.onAttachedToWindow()

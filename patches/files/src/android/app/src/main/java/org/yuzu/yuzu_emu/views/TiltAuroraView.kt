@@ -58,7 +58,20 @@ class TiltAuroraView @JvmOverloads constructor(
         super.onAttachedToWindow()
         loadColors()
         TiltSensor.add(context, this)
+        kick()
     }
+
+    private fun kick() {
+        if (!running) {
+            running = true
+            Choreographer.getInstance().postFrameCallback(this)
+        }
+    }
+
+    // Slow drift of the blobs, seconds; advances only while the effects are on.
+    private var time = 0f
+    private var lastFrame = 0L
+    private var skip = false
 
     override fun onDetachedFromWindow() {
         TiltSensor.remove(context, this)
@@ -70,18 +83,21 @@ class TiltAuroraView @JvmOverloads constructor(
     override fun onTilt(pitch: Float, roll: Float) {
         targetX = -roll / TiltSensor.MAX_TILT
         targetY = pitch / TiltSensor.MAX_TILT
-        if (!running) {
-            running = true
-            Choreographer.getInstance().postFrameCallback(this)
-        }
+        kick()
     }
 
     override fun doFrame(frameTimeNanos: Long) {
         if (!running) return
+        val on = TiltSensor.isEnabled(context)
+        if (lastFrame != 0L) time += ((frameTimeNanos - lastFrame) / 1e9f).coerceIn(0f, 0.1f)
+        lastFrame = frameTimeNanos
         shiftX += (targetX - shiftX) * 0.12f
         shiftY += (targetY - shiftY) * 0.12f
-        invalidate()
-        if (abs(targetX - shiftX) < 0.002f && abs(targetY - shiftY) < 0.002f) {
+        // 30 frames a second is plenty for a glow.
+        skip = !skip
+        if (!skip) invalidate()
+        if (!on && abs(targetX - shiftX) < 0.002f && abs(targetY - shiftY) < 0.002f) {
+            lastFrame = 0L
             shiftX = targetX
             shiftY = targetY
             running = false
@@ -93,13 +109,13 @@ class TiltAuroraView @JvmOverloads constructor(
     private fun blob(canvas: Canvas, fx: Float, fy: Float, fr: Float, depth: Float, color: Int) {
         val w = width.toFloat()
         val h = height.toFloat()
-        val cx = w * fx + shiftX * w * 0.08f * depth
-        val cy = h * fy + shiftY * h * 0.06f * depth
+        val cx = w * fx + shiftX * w * 0.10f * depth + kotlin.math.sin(time * 0.21f * depth + fx * 6f) * w * 0.12f
+        val cy = h * fy + shiftY * h * 0.08f * depth + kotlin.math.cos(time * 0.17f * depth + fy * 6f) * h * 0.08f
         val r = max(w, h) * fr
         paint.shader = RadialGradient(
             cx, cy, r,
             intArrayOf(
-                Color.argb(70, Color.red(color), Color.green(color), Color.blue(color)),
+                Color.argb(115, Color.red(color), Color.green(color), Color.blue(color)),
                 Color.argb(0, Color.red(color), Color.green(color), Color.blue(color))
             ),
             floatArrayOf(0f, 1f),
