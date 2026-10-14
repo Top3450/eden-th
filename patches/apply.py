@@ -148,8 +148,9 @@ edit(
                 }
 """,
 )
-edit(
-    "src/android/app/src/main/res/layout/fragment_games.xml",
+for layout in ("layout", "layout-land"):
+  edit(
+    f"src/android/app/src/main/res/{layout}/fragment_games.xml",
     "tilting glow behind the game list",
     """    <LinearLayout
         android:id="@+id/header\"""",
@@ -229,6 +230,26 @@ edit(
     "carousel kept in portrait",
     "val savedViewType = if (isLandscape || currentViewType != GameAdapter.VIEW_TYPE_CAROUSEL) currentViewType else GameAdapter.VIEW_TYPE_GRID",
     "val savedViewType = currentViewType // Eden TH: carousel in portrait too",
+)
+
+# 5. Portrait lays the games out in a plain RecyclerView, which cannot be a carousel (the cards stay
+#    zero-sized and invisible); use the carousel-capable list there too, as landscape does.
+edit(
+    "src/android/app/src/main/res/layout/fragment_games.xml",
+    "portrait game list can be a carousel",
+    """            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/grid_games"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:clipToPadding="false"
+""",
+    """            <org.yuzu.yuzu_emu.ui.CarouselRecyclerView
+                android:id="@+id/grid_games"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:clipToPadding="false"
+                android:clipChildren="false"
+""",
 )
 
 if failures:
